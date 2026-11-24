@@ -15253,7 +15253,7 @@ function fetchIndicatorsForPeriod(year, month) {
       parseJSON(ufResponse),
       parseJSON(utmResponse)
     ], { concurrency: 2 });
-    const ufValue = Math.round(yield* extractSerieValue(ufJson, "uf"));
+    const ufValue = yield* extractSerieValue(ufJson, "uf");
     const utmValue = Math.round(yield* extractSerieValue(utmJson, "utm"));
     return {
       uf: ufValue,
@@ -17626,20 +17626,27 @@ function extractIndicators(feed) {
     );
   }
 }
+var isThousandsGrouped = (s, sep) => new RegExp(`^[1-9]\\d{0,2}(\\${sep}\\d{3})+$`).test(s);
 function parseIndicatorNumber(value) {
-  const digits = value.replace(/[^\d.,]/g, "");
+  const fail5 = () => new Error(`No se pudo parsear el n\xFAmero: "${value}"`);
+  const digits = /\d[\d.,]*/.exec(value)?.[0].replace(/[.,]$/, "") ?? "";
   const lastDot = digits.lastIndexOf(".");
   const lastComma = digits.lastIndexOf(",");
   let normalized;
   if (lastDot >= 0 && lastComma >= 0) {
     const decimal = lastDot > lastComma ? "." : ",";
     const thousands = decimal === "." ? "," : ".";
-    normalized = digits.split(thousands).join("").replace(decimal, ".");
+    const at = digits.lastIndexOf(decimal);
+    const whole = digits.slice(0, at);
+    if (!isThousandsGrouped(whole, thousands)) throw fail5();
+    normalized = `${whole.split(thousands).join("")}.${digits.slice(at + 1)}`;
+  } else if (lastDot >= 0 || lastComma >= 0) {
+    const sep = lastDot >= 0 ? "." : ",";
+    if (isThousandsGrouped(digits, sep)) normalized = digits.split(sep).join("");
+    else if (digits.split(sep).length === 2) normalized = digits.replace(sep, ".");
+    else throw fail5();
   } else {
-    const sep = lastDot >= 0 ? "." : lastComma >= 0 ? "," : null;
-    const parts2 = sep ? digits.split(sep) : [digits];
-    const isThousands = parts2.length > 2 || parts2.length === 2 && parts2[1].length === 3;
-    normalized = isThousands ? parts2.join("") : parts2.join(".");
+    normalized = digits;
   }
   const parsed = normalized === "" ? Number.NaN : Number(normalized);
   if (Number.isNaN(parsed)) {
