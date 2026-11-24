@@ -75,16 +75,18 @@ export function formatCLP(amount: number): string {
 export const AFP_CAP_UF = 81.6;
 
 /**
- * Apply percentage to an amount capped at the AFP tope imponible (81.6 UF).
- * Used by AFP, SIS, and pension reform calculations.
+ * Apply percentage to an amount capped at a tope imponible in UF (default 81.6 UF).
+ * Used by AFP, SIS, health, unemployment and pension reform calculations.
+ * The cap in CLP is round(capUF * uf).
  *
  * @param imponibleIncome - Imponible income in CLP
  * @param uf - Current UF value in CLP
  * @param rate - Percentage rate to apply
+ * @param capUF - Tope imponible in UF
  * @returns Calculated amount in integer CLP
  */
-export function cappedPercentage(imponibleIncome: number, uf: number, rate: number): number {
-  const cap = roundCLP(AFP_CAP_UF * uf);
+export function cappedPercentage(imponibleIncome: number, uf: number, rate: number, capUF: number = AFP_CAP_UF): number {
+  const cap = roundCLP(capUF * uf);
   const base = Math.min(imponibleIncome, cap);
   return percentage(base, rate);
 }

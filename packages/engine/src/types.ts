@@ -83,17 +83,38 @@ export const FamilyAllowanceBracketSchema = z.object({
   amount: z.number().describe('CLP per load'),
 });
 
+export const UnemploymentRateSchema = z.object({
+  employee: z.number().describe('Percentage paid by the employee'),
+  employer: z.number().describe('Percentage paid by the employer'),
+});
+
 export const ReferenceDataSchema = z.object({
   uf: z.number().describe('UF value in CLP'),
   utm: z.number().describe('UTM value in CLP'),
   uta: z.number().describe('UTA value in CLP'),
   imm: z.number().describe('Ingreso Mínimo Mensual (minimum wage)'),
   afpRates: z.record(z.string(), AFPRateSchema),
-  fonasaRate: z.number().describe('Percentage (typically 7%)'),
+  fonasaRate: z.number().describe('Percentage (typically 7%). Also the minimum Isapre contribution.'),
   taxBrackets: z.array(TaxBracketSchema),
   familyAllowanceBrackets: z.array(FamilyAllowanceBracketSchema),
   unemploymentRate: z.number().describe('Percentage'),
   mutualRate: z.number().describe('Percentage (variable by company)'),
+  // Legal values that change by law. Optional: without them the engine keeps its built-in values,
+  // so existing callers see no change. Pass them to calculate with the values of the period.
+  imponibleCapUF: z.number().optional().describe(
+    'Tope imponible in UF for AFP, health, SIS and the pension reform. Default: 81.6 UF for AFP, SIS and reform; health uncapped',
+  ),
+  unemploymentCapUF: z.number().optional().describe('Tope imponible in UF for unemployment insurance. Default: uncapped'),
+  unemploymentRates: z
+    .object({ indefinido: UnemploymentRateSchema, plazo_fijo: UnemploymentRateSchema, por_obra: UnemploymentRateSchema })
+    .optional()
+    .describe('Unemployment insurance rates by contract type. Default: 0.6/2.4 indefinido, 0.6/3.0 plazo_fijo and por_obra'),
+  pensionReformRate: z.number().optional().describe(
+    'Employer pension reform rate (Law 21.720), percentage. Default: built-in phase-in schedule by period date',
+  ),
+  mandatoryPensionRate: z.number().optional().describe('Mandatory AFP contribution, percentage. Default: 10'),
+  gratificationRate: z.number().optional().describe('Legal gratification, percentage of base salary. Default: 25'),
+  gratificationCapIMM: z.number().optional().describe('Legal gratification yearly cap in IMM (paid monthly / 12). Default: 4.75'),
 });
 
 export const CalculationInputSchema = z.object({

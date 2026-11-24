@@ -8,9 +8,12 @@
  * the income tax base. When the plan costs more than 7%, the total
  * plan cost is deducted (7% mandatory + "adicional isapre").
  * The isapreUFAmount parameter is the TOTAL plan cost in UF.
+ *
+ * The 7% applies to imponible income capped at the tope imponible when
+ * the caller passes one (capUF). Without it, the base is not capped.
  */
 
-import { percentage, roundCLP } from '../money.js';
+import { cappedPercentage, percentage, roundCLP } from '../money.js';
 
 const FONASA_RATE = 7;
 
@@ -21,15 +24,21 @@ const FONASA_RATE = 7;
  * @param healthPlan - 'fonasa' or 'isapre'
  * @param isapreUFAmount - Isapre plan cost in UF (only used for isapre)
  * @param ufValue - Current UF value in CLP
+ * @param rate - Mandatory health percentage (default 7)
+ * @param capUF - Tope imponible in UF (default: no cap)
  * @returns Health deduction in integer CLP
  */
 export function calculateHealth(
   imponibleIncome: number,
   healthPlan: 'fonasa' | 'isapre',
   isapreUFAmount: number,
-  ufValue: number
+  ufValue: number,
+  rate: number = FONASA_RATE,
+  capUF?: number,
 ): number {
-  const minimumHealth = percentage(imponibleIncome, FONASA_RATE);
+  const minimumHealth = capUF === undefined
+    ? percentage(imponibleIncome, rate)
+    : cappedPercentage(imponibleIncome, ufValue, rate, capUF);
 
   if (healthPlan === 'fonasa') {
     return minimumHealth;

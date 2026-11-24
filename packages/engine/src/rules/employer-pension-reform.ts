@@ -1,4 +1,4 @@
-import { cappedPercentage } from '../money.js';
+import { AFP_CAP_UF, cappedPercentage } from '../money.js';
 
 /**
  * Phase-in schedule for employer pension reform contributions
@@ -30,15 +30,18 @@ export function getReformRate(effectiveDate: Date): number {
  *
  * @param imponibleIncome - Imponible income in CLP
  * @param uf - Current UF value in CLP
- * @param effectiveDate - Pay period date (determines which rate applies)
+ * @param effectiveDate - Pay period date (determines which rate applies when `rate` is not given)
+ * @param capUF - Tope imponible in UF (default 81.6)
+ * @param rate - Rate of the period, percentage. Default: built-in schedule by `effectiveDate`
  * @returns Employer reform contribution in integer CLP
  */
 export function calculateEmployerPensionReform(
   imponibleIncome: number,
   uf: number,
   effectiveDate: Date,
+  capUF: number = AFP_CAP_UF,
+  rate: number = getReformRate(effectiveDate),
 ): number {
-  const rate = getReformRate(effectiveDate);
   if (rate === 0) return 0;
-  return cappedPercentage(imponibleIncome, uf, rate);
+  return cappedPercentage(imponibleIncome, uf, rate, capUF);
 }

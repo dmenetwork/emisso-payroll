@@ -1,5 +1,11 @@
 # @emisso/payroll
 
+## 0.4.0-dme.1
+
+### Minor Changes
+
+- Legal values as optional reference data: `imponibleCapUF` (AFP, health, SIS and reform cap), `unemploymentCapUF`, `unemploymentRates` by contract type, `pensionReformRate`, `mandatoryPensionRate`, `gratificationRate` and `gratificationCapIMM`. Health now uses `fonasaRate`. Without the new fields the results do not change. Fork build for Rito App (dmenetwork/rito-os-app, DEC-34).
+
 ## 0.4.0
 
 ### Minor Changes

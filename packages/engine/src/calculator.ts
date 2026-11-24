@@ -55,6 +55,8 @@ export function calculateEmployeePayroll(
   periodDate?: Date,
 ): CalculationResult {
   const { uf, utm, imm, afpRates, taxBrackets, familyAllowanceBrackets, mutualRate } = referenceData;
+  // Legal values of the period. Undefined = the rule's built-in default (see ReferenceDataSchema).
+  const { imponibleCapUF, unemploymentCapUF, unemploymentRates, pensionReformRate, mandatoryPensionRate } = referenceData;
 
   // --- 1. Earnings phase ---
 
@@ -64,7 +66,9 @@ export function calculateEmployeePayroll(
     baseSalary,
     employee.gratificationType,
     employee.gratificationAmount ?? 0,
-    imm
+    imm,
+    referenceData.gratificationRate,
+    referenceData.gratificationCapIMM,
   );
 
   // Process earnings array: separate by type and resolve legal flags
@@ -132,17 +136,23 @@ export function calculateEmployeePayroll(
 
   // --- 3. Deductions ---
 
-  const afp = calculateAFP(totalImponible, employee.afpCode, afpRates, uf);
+  const afp = calculateAFP(totalImponible, employee.afpCode, afpRates, uf, imponibleCapUF, mandatoryPensionRate);
 
   const health = calculateHealth(
     totalImponible,
     employee.healthPlan,
     employee.isapreAmount ?? 0,
-    uf
+    uf,
+    referenceData.fonasaRate,
+    imponibleCapUF,
   );
 
   const contractType = employee.contractType ?? 'indefinido';
-  const unemployment = calculateUnemployment(totalImponible, contractType);
+  const unemployment = calculateUnemployment(totalImponible, contractType, {
+    rates: unemploymentRates,
+    capUF: unemploymentCapUF,
+    uf,
+  });
 
   const apv = calculateAPV(employee.apvAmount ?? 0);
 
@@ -182,9 +192,15 @@ export function calculateEmployeePayroll(
   // --- 5. Employer costs ---
 
   const mutual = calculateMutual(totalImponible, mutualRate);
-  const sis = calculateSIS(totalImponible, employee.afpCode, afpRates, uf);
+  const sis = calculateSIS(totalImponible, employee.afpCode, afpRates, uf, imponibleCapUF);
   const employerUnemployment = unemployment.employer;
-  const pensionReform = calculateEmployerPensionReform(totalImponible, uf, periodDate ?? new Date());
+  const pensionReform = calculateEmployerPensionReform(
+    totalImponible,
+    uf,
+    periodDate ?? new Date(),
+    imponibleCapUF,
+    pensionReformRate,
+  );
   const totalEmployerCosts = sum(mutual, sis, employerUnemployment, pensionReform);
 
   return {
