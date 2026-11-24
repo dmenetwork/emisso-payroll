@@ -58,17 +58,34 @@ var FamilyAllowanceBracketSchema = z.object({
   to: z.number().nullable().describe("CLP"),
   amount: z.number().describe("CLP per load")
 });
+var UnemploymentRateSchema = z.object({
+  employee: z.number().describe("Percentage paid by the employee"),
+  employer: z.number().describe("Percentage paid by the employer")
+});
 var ReferenceDataSchema = z.object({
   uf: z.number().describe("UF value in CLP"),
   utm: z.number().describe("UTM value in CLP"),
   uta: z.number().describe("UTA value in CLP"),
   imm: z.number().describe("Ingreso M\xEDnimo Mensual (minimum wage)"),
   afpRates: z.record(z.string(), AFPRateSchema),
-  fonasaRate: z.number().describe("Percentage (typically 7%)"),
+  fonasaRate: z.number().describe("Percentage (typically 7%). Also the minimum Isapre contribution."),
   taxBrackets: z.array(TaxBracketSchema),
   familyAllowanceBrackets: z.array(FamilyAllowanceBracketSchema),
   unemploymentRate: z.number().describe("Percentage"),
-  mutualRate: z.number().describe("Percentage (variable by company)")
+  mutualRate: z.number().describe("Percentage (variable by company)"),
+  // Legal values that change by law. Optional: without them the engine keeps its built-in values,
+  // so existing callers see no change. Pass them to calculate with the values of the period.
+  imponibleCapUF: z.number().optional().describe(
+    "Tope imponible in UF for AFP, health, SIS and the pension reform. Default: 81.6 UF for AFP, SIS and reform; health uncapped"
+  ),
+  unemploymentCapUF: z.number().optional().describe("Tope imponible in UF for unemployment insurance. Default: uncapped"),
+  unemploymentRates: z.object({ indefinido: UnemploymentRateSchema, plazo_fijo: UnemploymentRateSchema, por_obra: UnemploymentRateSchema }).optional().describe("Unemployment insurance rates by contract type. Default: 0.6/2.4 indefinido, 0.6/3.0 plazo_fijo and por_obra"),
+  pensionReformRate: z.number().optional().describe(
+    "Employer pension reform rate (Law 21.720), percentage. Default: built-in phase-in schedule by period date"
+  ),
+  mandatoryPensionRate: z.number().optional().describe("Mandatory AFP contribution, percentage. Default: 10"),
+  gratificationRate: z.number().optional().describe("Legal gratification, percentage of base salary. Default: 25"),
+  gratificationCapIMM: z.number().optional().describe("Legal gratification yearly cap in IMM (paid monthly / 12). Default: 4.75")
 });
 var CalculationInputSchema = z.object({
   employees: z.array(EmployeePayrollInputSchema),
@@ -107,8 +124,8 @@ function formatCLP(amount) {
   return roundCLP(amount).toLocaleString("es-CL");
 }
 var AFP_CAP_UF = 81.6;
-function cappedPercentage(imponibleIncome, uf, rate) {
-  const cap = roundCLP(AFP_CAP_UF * uf);
+function cappedPercentage(imponibleIncome, uf, rate, capUF = AFP_CAP_UF) {
+  const cap = roundCLP(capUF * uf);
   const base = Math.min(imponibleIncome, cap);
   return percentage(base, rate);
 }
@@ -200,12 +217,12 @@ function clearIndicatorCache() {
 
 // src/rules/afp.ts
 var MANDATORY_PENSION_RATE = 10;
-function calculateAFP(imponibleIncome, afpCode, afpRates, uf) {
+function calculateAFP(imponibleIncome, afpCode, afpRates, uf, capUF = AFP_CAP_UF, mandatoryRate = MANDATORY_PENSION_RATE) {
   const rates = afpRates[afpCode];
   if (!rates) {
     throw new Error(`AFP provider not found: ${afpCode}`);
   }
-  return cappedPercentage(imponibleIncome, uf, MANDATORY_PENSION_RATE + rates.commissionRate);
+  return cappedPercentage(imponibleIncome, uf, mandatoryRate + rates.commissionRate, capUF);
 }
 
 // src/rules/apv.ts
@@ -230,11 +247,11 @@ function calculateFamilyAllowance(baseSalary, loads, brackets) {
 }
 
 // src/rules/gratification.ts
-function calculateGratification(baseSalary, gratificationType, gratificationAmount, imm) {
+function calculateGratification(baseSalary, gratificationType, gratificationAmount, imm, rate = 25, capIMM = 4.75) {
   switch (gratificationType) {
     case "legal": {
-      const option25 = baseSalary * 0.25;
-      const cap = 4.75 * imm / 12;
+      const option25 = baseSalary * rate / 100;
+      const cap = capIMM * imm / 12;
       return roundCLP(Math.min(option25, cap));
     }
     case "convenida":
@@ -246,8 +263,8 @@ function calculateGratification(baseSalary, gratificationType, gratificationAmou
 
 // src/rules/health.ts
 var FONASA_RATE = 7;
-function calculateHealth(imponibleIncome, healthPlan, isapreUFAmount, ufValue) {
-  const minimumHealth = percentage(imponibleIncome, FONASA_RATE);
+function calculateHealth(imponibleIncome, healthPlan, isapreUFAmount, ufValue, rate = FONASA_RATE, capUF) {
+  const minimumHealth = capUF === void 0 ? percentage(imponibleIncome, rate) : cappedPercentage(imponibleIncome, ufValue, rate, capUF);
   if (healthPlan === "fonasa") {
     return minimumHealth;
   }
@@ -282,23 +299,29 @@ function calculateMutual(imponibleIncome, mutualRate) {
 }
 
 // src/rules/sis.ts
-function calculateSIS(imponibleIncome, afpCode, afpRates, uf) {
+function calculateSIS(imponibleIncome, afpCode, afpRates, uf, capUF = AFP_CAP_UF) {
   const rates = afpRates[afpCode];
   if (!rates) {
     throw new Error(`AFP provider not found: ${afpCode}`);
   }
-  return cappedPercentage(imponibleIncome, uf, rates.sisRate);
+  return cappedPercentage(imponibleIncome, uf, rates.sisRate, capUF);
 }
 
 // src/rules/unemployment.ts
 var EMPLOYEE_RATE = 0.6;
 var EMPLOYER_RATE_INDEFINIDO = 2.4;
 var EMPLOYER_RATE_PLAZO_FIJO = 3;
-function calculateUnemployment(imponibleIncome, contractType) {
-  const employee = percentage(imponibleIncome, EMPLOYEE_RATE);
-  const employerRate = contractType === "indefinido" ? EMPLOYER_RATE_INDEFINIDO : EMPLOYER_RATE_PLAZO_FIJO;
-  const employer = percentage(imponibleIncome, employerRate);
-  return { employee, employer };
+function calculateUnemployment(imponibleIncome, contractType, options = {}) {
+  const { employee: employeeRate, employer: employerRate } = options.rates?.[contractType] ?? {
+    employee: EMPLOYEE_RATE,
+    employer: contractType === "indefinido" ? EMPLOYER_RATE_INDEFINIDO : EMPLOYER_RATE_PLAZO_FIJO
+  };
+  const { capUF, uf } = options;
+  if (capUF !== void 0 && uf === void 0) {
+    throw new Error("calculateUnemployment: capUF requires uf");
+  }
+  const apply = (rate) => capUF === void 0 ? percentage(imponibleIncome, rate) : cappedPercentage(imponibleIncome, uf, rate, capUF);
+  return { employee: apply(employeeRate), employer: apply(employerRate) };
 }
 
 // src/rules/employer-pension-reform.ts
@@ -316,10 +339,9 @@ function getReformRate(effectiveDate) {
   }
   return 0;
 }
-function calculateEmployerPensionReform(imponibleIncome, uf, effectiveDate) {
-  const rate = getReformRate(effectiveDate);
+function calculateEmployerPensionReform(imponibleIncome, uf, effectiveDate, capUF = AFP_CAP_UF, rate = getReformRate(effectiveDate)) {
   if (rate === 0) return 0;
-  return cappedPercentage(imponibleIncome, uf, rate);
+  return cappedPercentage(imponibleIncome, uf, rate, capUF);
 }
 
 // src/calculator.ts
@@ -332,12 +354,15 @@ async function calculatePayroll(input) {
 }
 function calculateEmployeePayroll(employee, referenceData, periodDate) {
   const { uf, utm, imm, afpRates, taxBrackets, familyAllowanceBrackets, mutualRate } = referenceData;
+  const { imponibleCapUF, unemploymentCapUF, unemploymentRates, pensionReformRate, mandatoryPensionRate } = referenceData;
   const baseSalary = roundCLP(employee.baseSalary);
   const gratification = calculateGratification(
     baseSalary,
     employee.gratificationType,
     employee.gratificationAmount ?? 0,
-    imm
+    imm,
+    referenceData.gratificationRate,
+    referenceData.gratificationCapIMM
   );
   let overtimeTotal = 0;
   let bonusesTotal = 0;
@@ -384,15 +409,21 @@ function calculateEmployeePayroll(employee, referenceData, periodDate) {
   const totalImponible = sum(baseSalary, gratification, imponibleEarnings);
   const totalTaxable = sum(baseSalary, gratification, taxableEarnings);
   const totalNonTaxable = sum(colacion, movilizacion, familyAllowance, nonTaxableEarnings);
-  const afp = calculateAFP(totalImponible, employee.afpCode, afpRates, uf);
+  const afp = calculateAFP(totalImponible, employee.afpCode, afpRates, uf, imponibleCapUF, mandatoryPensionRate);
   const health = calculateHealth(
     totalImponible,
     employee.healthPlan,
     employee.isapreAmount ?? 0,
-    uf
+    uf,
+    referenceData.fonasaRate,
+    imponibleCapUF
   );
   const contractType = employee.contractType ?? "indefinido";
-  const unemployment = calculateUnemployment(totalImponible, contractType);
+  const unemployment = calculateUnemployment(totalImponible, contractType, {
+    rates: unemploymentRates,
+    capUF: unemploymentCapUF,
+    uf
+  });
   const apv = calculateAPV(employee.apvAmount ?? 0);
   const incomeTaxBase = subtract(
     totalTaxable,
@@ -417,9 +448,15 @@ function calculateEmployeePayroll(employee, referenceData, periodDate) {
   );
   const netPay = subtract(totalEarnings, totalDeductions);
   const mutual = calculateMutual(totalImponible, mutualRate);
-  const sis = calculateSIS(totalImponible, employee.afpCode, afpRates, uf);
+  const sis = calculateSIS(totalImponible, employee.afpCode, afpRates, uf, imponibleCapUF);
   const employerUnemployment = unemployment.employer;
-  const pensionReform = calculateEmployerPensionReform(totalImponible, uf, periodDate ?? /* @__PURE__ */ new Date());
+  const pensionReform = calculateEmployerPensionReform(
+    totalImponible,
+    uf,
+    periodDate ?? /* @__PURE__ */ new Date(),
+    imponibleCapUF,
+    pensionReformRate
+  );
   const totalEmployerCosts = sum(mutual, sis, employerUnemployment, pensionReform);
   return {
     employeeId: employee.employeeId,
@@ -849,6 +886,7 @@ export {
   HEALTH_PREVIRED_CODES,
   ReferenceDataSchema,
   TaxBracketSchema,
+  UnemploymentRateSchema,
   calculatePayroll as calcular,
   calculateEmployeePayroll as calcularEmpleado,
   calculateEmployeePayroll,

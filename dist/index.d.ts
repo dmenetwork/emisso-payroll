@@ -195,6 +195,16 @@ declare const FamilyAllowanceBracketSchema: z.ZodObject<{
     from: number;
     to: number | null;
 }>;
+declare const UnemploymentRateSchema: z.ZodObject<{
+    employee: z.ZodNumber;
+    employer: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    employee: number;
+    employer: number;
+}, {
+    employee: number;
+    employer: number;
+}>;
 declare const ReferenceDataSchema: z.ZodObject<{
     uf: z.ZodNumber;
     utm: z.ZodNumber;
@@ -242,6 +252,70 @@ declare const ReferenceDataSchema: z.ZodObject<{
     }>, "many">;
     unemploymentRate: z.ZodNumber;
     mutualRate: z.ZodNumber;
+    imponibleCapUF: z.ZodOptional<z.ZodNumber>;
+    unemploymentCapUF: z.ZodOptional<z.ZodNumber>;
+    unemploymentRates: z.ZodOptional<z.ZodObject<{
+        indefinido: z.ZodObject<{
+            employee: z.ZodNumber;
+            employer: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            employee: number;
+            employer: number;
+        }, {
+            employee: number;
+            employer: number;
+        }>;
+        plazo_fijo: z.ZodObject<{
+            employee: z.ZodNumber;
+            employer: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            employee: number;
+            employer: number;
+        }, {
+            employee: number;
+            employer: number;
+        }>;
+        por_obra: z.ZodObject<{
+            employee: z.ZodNumber;
+            employer: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            employee: number;
+            employer: number;
+        }, {
+            employee: number;
+            employer: number;
+        }>;
+    }, "strip", z.ZodTypeAny, {
+        indefinido: {
+            employee: number;
+            employer: number;
+        };
+        plazo_fijo: {
+            employee: number;
+            employer: number;
+        };
+        por_obra: {
+            employee: number;
+            employer: number;
+        };
+    }, {
+        indefinido: {
+            employee: number;
+            employer: number;
+        };
+        plazo_fijo: {
+            employee: number;
+            employer: number;
+        };
+        por_obra: {
+            employee: number;
+            employer: number;
+        };
+    }>>;
+    pensionReformRate: z.ZodOptional<z.ZodNumber>;
+    mandatoryPensionRate: z.ZodOptional<z.ZodNumber>;
+    gratificationRate: z.ZodOptional<z.ZodNumber>;
+    gratificationCapIMM: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     uf: number;
     utm: number;
@@ -265,6 +339,26 @@ declare const ReferenceDataSchema: z.ZodObject<{
     }[];
     unemploymentRate: number;
     mutualRate: number;
+    imponibleCapUF?: number | undefined;
+    unemploymentCapUF?: number | undefined;
+    unemploymentRates?: {
+        indefinido: {
+            employee: number;
+            employer: number;
+        };
+        plazo_fijo: {
+            employee: number;
+            employer: number;
+        };
+        por_obra: {
+            employee: number;
+            employer: number;
+        };
+    } | undefined;
+    pensionReformRate?: number | undefined;
+    mandatoryPensionRate?: number | undefined;
+    gratificationRate?: number | undefined;
+    gratificationCapIMM?: number | undefined;
 }, {
     uf: number;
     utm: number;
@@ -288,6 +382,26 @@ declare const ReferenceDataSchema: z.ZodObject<{
     }[];
     unemploymentRate: number;
     mutualRate: number;
+    imponibleCapUF?: number | undefined;
+    unemploymentCapUF?: number | undefined;
+    unemploymentRates?: {
+        indefinido: {
+            employee: number;
+            employer: number;
+        };
+        plazo_fijo: {
+            employee: number;
+            employer: number;
+        };
+        por_obra: {
+            employee: number;
+            employer: number;
+        };
+    } | undefined;
+    pensionReformRate?: number | undefined;
+    mandatoryPensionRate?: number | undefined;
+    gratificationRate?: number | undefined;
+    gratificationCapIMM?: number | undefined;
 }>;
 declare const CalculationInputSchema: z.ZodObject<{
     employees: z.ZodArray<z.ZodObject<{
@@ -445,6 +559,70 @@ declare const CalculationInputSchema: z.ZodObject<{
         }>, "many">;
         unemploymentRate: z.ZodNumber;
         mutualRate: z.ZodNumber;
+        imponibleCapUF: z.ZodOptional<z.ZodNumber>;
+        unemploymentCapUF: z.ZodOptional<z.ZodNumber>;
+        unemploymentRates: z.ZodOptional<z.ZodObject<{
+            indefinido: z.ZodObject<{
+                employee: z.ZodNumber;
+                employer: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                employee: number;
+                employer: number;
+            }, {
+                employee: number;
+                employer: number;
+            }>;
+            plazo_fijo: z.ZodObject<{
+                employee: z.ZodNumber;
+                employer: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                employee: number;
+                employer: number;
+            }, {
+                employee: number;
+                employer: number;
+            }>;
+            por_obra: z.ZodObject<{
+                employee: z.ZodNumber;
+                employer: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                employee: number;
+                employer: number;
+            }, {
+                employee: number;
+                employer: number;
+            }>;
+        }, "strip", z.ZodTypeAny, {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        }, {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        }>>;
+        pensionReformRate: z.ZodOptional<z.ZodNumber>;
+        mandatoryPensionRate: z.ZodOptional<z.ZodNumber>;
+        gratificationRate: z.ZodOptional<z.ZodNumber>;
+        gratificationCapIMM: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         uf: number;
         utm: number;
@@ -468,6 +646,26 @@ declare const CalculationInputSchema: z.ZodObject<{
         }[];
         unemploymentRate: number;
         mutualRate: number;
+        imponibleCapUF?: number | undefined;
+        unemploymentCapUF?: number | undefined;
+        unemploymentRates?: {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        } | undefined;
+        pensionReformRate?: number | undefined;
+        mandatoryPensionRate?: number | undefined;
+        gratificationRate?: number | undefined;
+        gratificationCapIMM?: number | undefined;
     }, {
         uf: number;
         utm: number;
@@ -491,6 +689,26 @@ declare const CalculationInputSchema: z.ZodObject<{
         }[];
         unemploymentRate: number;
         mutualRate: number;
+        imponibleCapUF?: number | undefined;
+        unemploymentCapUF?: number | undefined;
+        unemploymentRates?: {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        } | undefined;
+        pensionReformRate?: number | undefined;
+        mandatoryPensionRate?: number | undefined;
+        gratificationRate?: number | undefined;
+        gratificationCapIMM?: number | undefined;
     }>>;
     periodYear: z.ZodNumber;
     periodMonth: z.ZodNumber;
@@ -551,6 +769,26 @@ declare const CalculationInputSchema: z.ZodObject<{
         }[];
         unemploymentRate: number;
         mutualRate: number;
+        imponibleCapUF?: number | undefined;
+        unemploymentCapUF?: number | undefined;
+        unemploymentRates?: {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        } | undefined;
+        pensionReformRate?: number | undefined;
+        mandatoryPensionRate?: number | undefined;
+        gratificationRate?: number | undefined;
+        gratificationCapIMM?: number | undefined;
     } | undefined;
     periodDate?: Date | undefined;
 }, {
@@ -609,6 +847,26 @@ declare const CalculationInputSchema: z.ZodObject<{
         }[];
         unemploymentRate: number;
         mutualRate: number;
+        imponibleCapUF?: number | undefined;
+        unemploymentCapUF?: number | undefined;
+        unemploymentRates?: {
+            indefinido: {
+                employee: number;
+                employer: number;
+            };
+            plazo_fijo: {
+                employee: number;
+                employer: number;
+            };
+            por_obra: {
+                employee: number;
+                employer: number;
+            };
+        } | undefined;
+        pensionReformRate?: number | undefined;
+        mandatoryPensionRate?: number | undefined;
+        gratificationRate?: number | undefined;
+        gratificationCapIMM?: number | undefined;
     } | undefined;
     periodDate?: Date | undefined;
 }>;
@@ -809,15 +1067,17 @@ declare function formatCLP(amount: number): string;
  */
 declare const AFP_CAP_UF = 81.6;
 /**
- * Apply percentage to an amount capped at the AFP tope imponible (81.6 UF).
- * Used by AFP, SIS, and pension reform calculations.
+ * Apply percentage to an amount capped at a tope imponible in UF (default 81.6 UF).
+ * Used by AFP, SIS, health, unemployment and pension reform calculations.
+ * The cap in CLP is round(capUF * uf).
  *
  * @param imponibleIncome - Imponible income in CLP
  * @param uf - Current UF value in CLP
  * @param rate - Percentage rate to apply
+ * @param capUF - Tope imponible in UF
  * @returns Calculated amount in integer CLP
  */
-declare function cappedPercentage(imponibleIncome: number, uf: number, rate: number): number;
+declare function cappedPercentage(imponibleIncome: number, uf: number, rate: number, capUF?: number): number;
 
 /**
  * Chilean RUT (Rol Único Tributario) utilities
@@ -1029,4 +1289,4 @@ declare function resolveReferenceData(): Promise<ReferenceData>;
 /** Clear the cached reference data (useful for testing). */
 declare function clearIndicatorCache(): void;
 
-export { AFPRateSchema, AFP_CAP_UF, AFP_PREVIRED_CODES, type CalculationInput, CalculationInputSchema, type CalculationResult, DEFAULT_REFERENCE_DATA, DeductionSchema, type DeductionsBreakdown, EarningSchema, type EarningType, EarningTypeSchema, type EarningsBreakdown, type EconomicIndicators, type EmployeePayrollInput, EmployeePayrollInputSchema, FamilyAllowanceBracketSchema, type FiniquitoInput, type FiniquitoResult, HEALTH_PREVIRED_CODES, type NetToGrossInput, type NetToGrossResult, type PreviredCompany, type PreviredEmployee, type PreviredFileData, type ReferenceData, type ReferenceDataProvider, ReferenceDataSchema, TaxBracketSchema, type TerminationType, calculatePayroll as calcular, calculateEmployeePayroll as calcularEmpleado, calculateEmployeePayroll, calculateFiniquito, calculateOvertime, calculatePayroll, cappedPercentage, clamp, cleanRut, clearIndicatorCache, divide, formatCLP, formatRut, generatePreviredFile, multiply, parseRut, percentage, resolveEarningFlags, resolveReferenceData, roundCLP, calculatePayroll as simulate, calculateEmployeePayroll as simulateEmployee, solveNetToGross, subtract, sum, validatePreviredData, validateRut };
+export { AFPRateSchema, AFP_CAP_UF, AFP_PREVIRED_CODES, type CalculationInput, CalculationInputSchema, type CalculationResult, DEFAULT_REFERENCE_DATA, DeductionSchema, type DeductionsBreakdown, EarningSchema, type EarningType, EarningTypeSchema, type EarningsBreakdown, type EconomicIndicators, type EmployeePayrollInput, EmployeePayrollInputSchema, FamilyAllowanceBracketSchema, type FiniquitoInput, type FiniquitoResult, HEALTH_PREVIRED_CODES, type NetToGrossInput, type NetToGrossResult, type PreviredCompany, type PreviredEmployee, type PreviredFileData, type ReferenceData, type ReferenceDataProvider, ReferenceDataSchema, TaxBracketSchema, type TerminationType, UnemploymentRateSchema, calculatePayroll as calcular, calculateEmployeePayroll as calcularEmpleado, calculateEmployeePayroll, calculateFiniquito, calculateOvertime, calculatePayroll, cappedPercentage, clamp, cleanRut, clearIndicatorCache, divide, formatCLP, formatRut, generatePreviredFile, multiply, parseRut, percentage, resolveEarningFlags, resolveReferenceData, roundCLP, calculatePayroll as simulate, calculateEmployeePayroll as simulateEmployee, solveNetToGross, subtract, sum, validatePreviredData, validateRut };
