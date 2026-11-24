@@ -1,5 +1,13 @@
 # @emisso/payroll
 
+## 0.4.0-dme.3
+
+### Changes
+
+- `fetchIndicatorsForPeriod` keeps the decimals of the UF (it rounded it to whole pesos).
+- `parseIndicatorNumber` takes the first number of the text and throws on malformed numbers ("12.34.5").
+- `uta` being optional in the SII provider result (0.4.0-dme.2) is a change to the public type.
+
 ## 0.4.0-dme.2
 
 ### Patch Changes
@@ -10,7 +18,7 @@
 
 ### Minor Changes
 
-- Legal values as optional reference data: `imponibleCapUF` (AFP, health, SIS and reform cap), `unemploymentCapUF`, `unemploymentRates` by contract type, `pensionReformRate`, `mandatoryPensionRate`, `gratificationRate` and `gratificationCapIMM`. Health now uses `fonasaRate`. Without the new fields the results do not change. Fork build for Rito App (dmenetwork/rito-os-app, DEC-34).
+- Legal values as optional reference data: `imponibleCapUF` (AFP, health, SIS and reform cap), `unemploymentCapUF`, `unemploymentRates` by contract type, `pensionReformRate`, `mandatoryPensionRate`, `gratificationRate` and `gratificationCapIMM`. Without the new fields the results do not change. Health now uses `fonasaRate`: a caller that passed a value other than 7 gets a different health deduction. The finiquito rules (`rules/finiquito.ts`) still use 25 % and 4.75 IMM. Fork build for Rito App (dmenetwork/rito-os-app, DEC-34).
 
 ## 0.4.0
 

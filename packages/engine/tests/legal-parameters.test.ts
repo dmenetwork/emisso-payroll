@@ -80,6 +80,19 @@ describe('legal parameters in reference data', () => {
     expect(r.deductions.health).toBe(96_000);
   });
 
+  it('the cap in CLP is round(capUF * uf), also with a UF with decimals, and Isapre keeps its plan cost', () => {
+    // 81.6 UF * 39,597.67 = 3,231,169.872 → cap 3,231,170.
+    const data = { ...ref, uf: 39_597.67, imponibleCapUF: 81.6 };
+    const r = calculateEmployeePayroll(employee, data, period);
+    expect(r.deductions.afp).toBe(Math.round((3_231_170 * 11.27) / 100));
+    expect(r.deductions.health).toBe(Math.round(3_231_170 * 0.07));
+    // Isapre: 7 % of the capped base (226,182) vs a 6.5 UF plan (257,385): the plan wins.
+    const isapre = calculateEmployeePayroll({ ...employee, healthPlan: 'isapre', isapreAmount: 6.5 }, data, period);
+    expect(isapre.deductions.health).toBe(Math.round(6.5 * 39_597.67));
+    const cheap = calculateEmployeePayroll({ ...employee, healthPlan: 'isapre', isapreAmount: 1 }, data, period);
+    expect(cheap.deductions.health).toBe(Math.round(3_231_170 * 0.07));
+  });
+
   it('calculateUnemployment rejects a cap without UF', () => {
     expect(() => calculateUnemployment(1_000_000, 'indefinido', { capUF: 10 })).toThrow('capUF requires uf');
   });

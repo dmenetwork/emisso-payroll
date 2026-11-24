@@ -21,6 +21,14 @@ describe('SII RSS provider', () => {
     expect(parseIndicatorNumber('CLP - $ 41,357.3')).toBe(41357.3);
     expect(parseIndicatorNumber('CLP - $ 72,440')).toBe(72440);
     expect(parseIndicatorNumber('CLP - $ 996.68')).toBe(996.68);
+    expect(parseIndicatorNumber('1.234')).toBe(1234);
+    expect(parseIndicatorNumber('0,5')).toBe(0.5);
+    expect(parseIndicatorNumber('0.500')).toBe(0.5);
+    expect(parseIndicatorNumber('12')).toBe(12);
+    expect(parseIndicatorNumber('41357.300')).toBe(41357.3);
+    expect(parseIndicatorNumber('CLP - $ 41,357.30 (18-11-2026)')).toBe(41357.3);
+    expect(() => parseIndicatorNumber('12.34.5')).toThrow();
+    expect(() => parseIndicatorNumber('1,23.4')).toThrow();
     expect(() => parseIndicatorNumber('CLP - $')).toThrow();
   });
 

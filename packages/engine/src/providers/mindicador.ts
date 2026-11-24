@@ -259,8 +259,9 @@ export function fetchIndicatorsForPeriod(
       parseJSON(utmResponse),
     ], { concurrency: 2 });
 
-    // Extract values from serie array (rounded to integer CLP)
-    const ufValue = Math.round(yield* extractSerieValue(ufJson, "uf"));
+    // Extract values from serie array. The UF keeps its decimals (it is published with two, and caps
+    // in UF are converted with it); the UTM is a whole CLP amount.
+    const ufValue = yield* extractSerieValue(ufJson, "uf");
     const utmValue = Math.round(yield* extractSerieValue(utmJson, "utm"));
 
     return {

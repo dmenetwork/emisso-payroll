@@ -315,12 +315,19 @@ function extractIndicators(
   }
 }
 
+/** "1.234.567" with `sep` as thousands separator: first group of 1 to 3 digits (not 0), then groups of 3. */
+const isThousandsGrouped = (s: string, sep: "." | ",") =>
+  new RegExp(`^[1-9]\\d{0,2}(\\${sep}\\d{3})+$`).test(s);
+
 /**
- * Parses an indicator value from the feed, with or without a "CLP - $" prefix.
+ * Parses an indicator value from the feed: the first number in the text, with or without a
+ * "CLP - $" prefix.
  *
  * The feed has used both the Chilean format ("38.500,12") and the US format ("CLP - $ 41,357.3").
- * With both separators the last one is the decimal separator. With only one kind, it is a thousands
- * separator when it repeats or is followed by exactly three digits, and a decimal separator otherwise.
+ * With both separators the last one is the decimal separator and the rest must be well-formed
+ * thousands groups. With only one kind, it is a thousands separator when the number is well-formed
+ * thousands groups ("72,440", "1.234.567"), and a decimal separator when it appears once otherwise
+ * ("996.68", "0,5", "0.500"). Anything else throws.
  *
  * Examples:
  * - "1.234.567,89" → 1234567.89
@@ -331,19 +338,25 @@ function extractIndicators(
  * - "CLP - $ 996.68" → 996.68
  */
 export function parseIndicatorNumber(value: string): number {
-  const digits = value.replace(/[^\d.,]/g, "");
+  const fail = () => new Error(`No se pudo parsear el número: "${value}"`);
+  const digits = /\d[\d.,]*/.exec(value)?.[0].replace(/[.,]$/, "") ?? "";
   const lastDot = digits.lastIndexOf(".");
   const lastComma = digits.lastIndexOf(",");
   let normalized: string;
   if (lastDot >= 0 && lastComma >= 0) {
     const decimal = lastDot > lastComma ? "." : ",";
     const thousands = decimal === "." ? "," : ".";
-    normalized = digits.split(thousands).join("").replace(decimal, ".");
+    const at = digits.lastIndexOf(decimal);
+    const whole = digits.slice(0, at);
+    if (!isThousandsGrouped(whole, thousands)) throw fail();
+    normalized = `${whole.split(thousands).join("")}.${digits.slice(at + 1)}`;
+  } else if (lastDot >= 0 || lastComma >= 0) {
+    const sep = lastDot >= 0 ? "." : ",";
+    if (isThousandsGrouped(digits, sep)) normalized = digits.split(sep).join("");
+    else if (digits.split(sep).length === 2) normalized = digits.replace(sep, ".");
+    else throw fail();
   } else {
-    const sep = lastDot >= 0 ? "." : lastComma >= 0 ? "," : null;
-    const parts = sep ? digits.split(sep) : [digits];
-    const isThousands = parts.length > 2 || (parts.length === 2 && parts[1]!.length === 3);
-    normalized = isThousands ? parts.join("") : parts.join(".");
+    normalized = digits;
   }
 
   const parsed = normalized === "" ? Number.NaN : Number(normalized);
