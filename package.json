@@ -1,0 +1,91 @@
+{
+  "name": "@emisso/payroll-cl",
+  "version": "0.4.0",
+  "description": "Chilean payroll calculation engine — AFP, health, tax, unemployment, Previred, and more",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./providers": {
+      "types": "./dist/providers.d.ts",
+      "import": "./dist/providers.js",
+      "require": "./dist/providers.cjs"
+    },
+    "./providers/node": {
+      "types": "./dist/providers-node.d.ts",
+      "import": "./dist/providers-node.js",
+      "require": "./dist/providers-node.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "payroll",
+    "chile",
+    "remuneraciones",
+    "afp",
+    "previred",
+    "liquidacion",
+    "impuestos",
+    "latam",
+    "nomina",
+    "salary",
+    "sueldos",
+    "fonasa",
+    "isapre",
+    "finiquito",
+    "severance",
+    "seguro-cesantia",
+    "gratificacion",
+    "income-tax",
+    "impuesto-unico",
+    "utm",
+    "uf",
+    "typescript",
+    "sdk",
+    "latin-america"
+  ],
+  "author": "Emisso <hello@emisso.ai>",
+  "license": "MIT",
+  "homepage": "https://github.com/emisso-ai/emisso-payroll",
+  "bugs": {
+    "url": "https://github.com/emisso-ai/emisso-payroll/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emisso-ai/emisso-payroll"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "optionalDependencies": {
+    "cheerio": "^1.2.0",
+    "effect": "^3.0.0",
+    "fast-xml-parser": "^5.3.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/node": "^25.5.0",
+    "tsup": "^8.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest --run",
+    "lint": "tsc --noEmit"
+  }
+}
