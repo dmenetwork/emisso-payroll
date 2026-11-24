@@ -17560,15 +17560,15 @@ function extractIndicators(feed) {
       if (!item.title || !item.description) {
         continue;
       }
-      const title = item.title.toUpperCase().trim();
+      const title = item.title.toUpperCase().replace(/[.\s]/g, "");
       const description = item.description.trim();
       try {
-        if (title.includes("UF")) {
-          indicators.uf = parseChileanNumber(description);
-        } else if (title.includes("UTM")) {
-          indicators.utm = parseChileanNumber(description);
-        } else if (title.includes("UTA")) {
-          indicators.uta = parseChileanNumber(description);
+        if (title.startsWith("UF")) {
+          indicators.uf = parseIndicatorNumber(description);
+        } else if (title.startsWith("UTM")) {
+          indicators.utm = parseIndicatorNumber(description);
+        } else if (title.startsWith("UTA")) {
+          indicators.uta = parseIndicatorNumber(description);
         }
       } catch {
         continue;
@@ -17585,9 +17585,7 @@ function extractIndicators(feed) {
     } else if (!isPositiveNumber(indicators.utm)) {
       errors.push({ path: "utm", message: "Valor UTM debe ser un n\xFAmero positivo" });
     }
-    if (indicators.uta === void 0) {
-      errors.push({ path: "uta", message: "No se encontr\xF3 valor UTA en el feed" });
-    } else if (!isPositiveNumber(indicators.uta)) {
+    if (indicators.uta !== void 0 && !isPositiveNumber(indicators.uta)) {
       errors.push({ path: "uta", message: "Valor UTA debe ser un n\xFAmero positivo" });
     }
     if (errors.length > 0) {
@@ -17596,7 +17594,7 @@ function extractIndicators(feed) {
     return Effect_exports.succeed({
       uf: indicators.uf,
       utm: indicators.utm,
-      uta: indicators.uta
+      ...indicators.uta !== void 0 ? { uta: indicators.uta } : {}
     });
   } catch (error) {
     return Effect_exports.fail(
@@ -17606,9 +17604,22 @@ function extractIndicators(feed) {
     );
   }
 }
-function parseChileanNumber(value) {
-  const normalized = value.replace(/\./g, "").replace(/,/g, ".");
-  const parsed = Number.parseFloat(normalized);
+function parseIndicatorNumber(value) {
+  const digits = value.replace(/[^\d.,]/g, "");
+  const lastDot = digits.lastIndexOf(".");
+  const lastComma = digits.lastIndexOf(",");
+  let normalized;
+  if (lastDot >= 0 && lastComma >= 0) {
+    const decimal = lastDot > lastComma ? "." : ",";
+    const thousands = decimal === "." ? "," : ".";
+    normalized = digits.split(thousands).join("").replace(decimal, ".");
+  } else {
+    const sep = lastDot >= 0 ? "." : lastComma >= 0 ? "," : null;
+    const parts2 = sep ? digits.split(sep) : [digits];
+    const isThousands = parts2.length > 2 || parts2.length === 2 && parts2[1].length === 3;
+    normalized = isThousands ? parts2.join("") : parts2.join(".");
+  }
+  const parsed = normalized === "" ? Number.NaN : Number(normalized);
   if (Number.isNaN(parsed)) {
     throw new Error(`No se pudo parsear el n\xFAmero: "${value}"`);
   }

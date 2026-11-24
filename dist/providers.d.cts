@@ -175,8 +175,8 @@ interface EconomicIndicators {
     uf: number;
     /** UTM value in CLP */
     utm: number;
-    /** UTA value in CLP */
-    uta: number;
+    /** UTA value in CLP, when the feed publishes it (the daily feed usually does not) */
+    uta?: number;
     /** Date when the data was fetched */
     fetchDate: Date;
 }
