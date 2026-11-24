@@ -1,5 +1,11 @@
 # @emisso/payroll
 
+## 0.4.0-dme.2
+
+### Patch Changes
+
+- Fix the SII RSS provider for the current feed: titles come dotted ("U.F.", "U.T.M. Noviembre") and values in US format ("CLP - $ 41,357.3"). `parseIndicatorNumber` reads both formats. The daily feed has no UTA, so `uta` is optional in its result.
+
 ## 0.4.0-dme.1
 
 ### Minor Changes

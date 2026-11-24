@@ -92,8 +92,8 @@ export interface EconomicIndicators {
   uf: number;
   /** UTM value in CLP */
   utm: number;
-  /** UTA value in CLP */
-  uta: number;
+  /** UTA value in CLP, when the feed publishes it (the daily feed usually does not) */
+  uta?: number;
   /** Date when the data was fetched */
   fetchDate: Date;
 }
@@ -236,7 +236,7 @@ function parseXML(xmlString: string): Effect.Effect<RSSFeed, ParseError, never> 
  */
 function extractIndicators(
   feed: RSSFeed
-): Effect.Effect<{ uf: number; utm: number; uta: number }, ValidationError, never> {
+): Effect.Effect<{ uf: number; utm: number; uta?: number }, ValidationError, never> {
   try {
     // Validate RSS structure
     if (!feed.rss?.channel?.item) {
@@ -260,16 +260,17 @@ function extractIndicators(
         continue;
       }
 
-      const title = item.title.toUpperCase().trim();
+      // Titles come as "U.F.", "U.T.M. Noviembre", "DOLAR OBSERVADO".
+      const title = item.title.toUpperCase().replace(/[.\s]/g, "");
       const description = item.description.trim();
 
       try {
-        if (title.includes("UF")) {
-          indicators.uf = parseChileanNumber(description);
-        } else if (title.includes("UTM")) {
-          indicators.utm = parseChileanNumber(description);
-        } else if (title.includes("UTA")) {
-          indicators.uta = parseChileanNumber(description);
+        if (title.startsWith("UF")) {
+          indicators.uf = parseIndicatorNumber(description);
+        } else if (title.startsWith("UTM")) {
+          indicators.utm = parseIndicatorNumber(description);
+        } else if (title.startsWith("UTA")) {
+          indicators.uta = parseIndicatorNumber(description);
         }
       } catch {
         // Continue on parse errors, we'll validate completeness below
@@ -292,9 +293,7 @@ function extractIndicators(
       errors.push({ path: "utm", message: "Valor UTM debe ser un número positivo" });
     }
 
-    if (indicators.uta === undefined) {
-      errors.push({ path: "uta", message: "No se encontró valor UTA en el feed" });
-    } else if (!isPositiveNumber(indicators.uta)) {
+    if (indicators.uta !== undefined && !isPositiveNumber(indicators.uta)) {
       errors.push({ path: "uta", message: "Valor UTA debe ser un número positivo" });
     }
 
@@ -303,9 +302,9 @@ function extractIndicators(
     }
 
     return Effect.succeed({
-      uf: indicators.uf,
-      utm: indicators.utm,
-      uta: indicators.uta,
+      uf: indicators.uf!,
+      utm: indicators.utm!,
+      ...(indicators.uta !== undefined ? { uta: indicators.uta } : {}),
     });
   } catch (error) {
     return Effect.fail(
@@ -317,23 +316,37 @@ function extractIndicators(
 }
 
 /**
- * Parses Chilean number format to JavaScript number
+ * Parses an indicator value from the feed, with or without a "CLP - $" prefix.
  *
- * Chilean format:
- * - Period (.) for thousands separator
- * - Comma (,) for decimal separator
+ * The feed has used both the Chilean format ("38.500,12") and the US format ("CLP - $ 41,357.3").
+ * With both separators the last one is the decimal separator. With only one kind, it is a thousands
+ * separator when it repeats or is followed by exactly three digits, and a decimal separator otherwise.
  *
  * Examples:
  * - "1.234.567,89" → 1234567.89
  * - "38.500,12" → 38500.12
- * - "65.967" → 65967.00
+ * - "65.967" → 65967
+ * - "CLP - $ 41,357.3" → 41357.3
+ * - "CLP - $ 72,440" → 72440
+ * - "CLP - $ 996.68" → 996.68
  */
-function parseChileanNumber(value: string): number {
-  const normalized = value
-    .replace(/\./g, "")
-    .replace(/,/g, ".");
+export function parseIndicatorNumber(value: string): number {
+  const digits = value.replace(/[^\d.,]/g, "");
+  const lastDot = digits.lastIndexOf(".");
+  const lastComma = digits.lastIndexOf(",");
+  let normalized: string;
+  if (lastDot >= 0 && lastComma >= 0) {
+    const decimal = lastDot > lastComma ? "." : ",";
+    const thousands = decimal === "." ? "," : ".";
+    normalized = digits.split(thousands).join("").replace(decimal, ".");
+  } else {
+    const sep = lastDot >= 0 ? "." : lastComma >= 0 ? "," : null;
+    const parts = sep ? digits.split(sep) : [digits];
+    const isThousands = parts.length > 2 || (parts.length === 2 && parts[1]!.length === 3);
+    normalized = isThousands ? parts.join("") : parts.join(".");
+  }
 
-  const parsed = Number.parseFloat(normalized);
+  const parsed = normalized === "" ? Number.NaN : Number(normalized);
 
   if (Number.isNaN(parsed)) {
     throw new Error(`No se pudo parsear el número: "${value}"`);
